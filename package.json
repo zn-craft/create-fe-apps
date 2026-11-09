@@ -1,6 +1,6 @@
 {
   "name": "crm-zn",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "Quickly create the directory structure for a monorepo project, built-in eslintconfig, stylelintconfig, tsconfig, husky, lint-staged",
   "keywords": [
     "monorepo",
