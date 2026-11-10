@@ -2,7 +2,12 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
-import type { DependencyField, JsonObject } from './main.type';
+import type {
+  DependencyField,
+  JsonObject,
+  ProjectKind,
+  SubPackageChoice,
+} from './main.type';
 
 // ---------- 常量 ----------
 
@@ -32,11 +37,47 @@ function locateTemplatesDir(): string {
 /** 模板目录的绝对路径。 */
 export const TEMPLATE_DIR = locateTemplatesDir();
 
+/** 两种形态共用的模板目录，放的是 ESLint / Prettier / Stylelint / Husky 这套知识体系。 */
+export const TEMPLATE_BASE_DIR = path.join(TEMPLATE_DIR, 'base');
+
+/**
+ * 各形态独占的模板目录。
+ * 拷贝顺序是 base → 形态目录，同名文件后者覆盖前者。
+ */
+export const TEMPLATE_KIND_DIRS: Record<ProjectKind, string> = {
+  single: path.join(TEMPLATE_DIR, 'single'),
+  monorepo: path.join(TEMPLATE_DIR, 'monorepo'),
+};
+
 /** 会被重命名作用域的子包目录。 */
 export const SUBPACKAGE_DIRS = ['apps', 'packages'] as const;
 
 /** 模板里用来占位的工作区作用域前缀。 */
 export const TEMPLATE_SCOPE = '@template/';
+
+/** 默认形态：不选时保持工具原本的产物。 */
+export const DEFAULT_PROJECT_KIND: ProjectKind = 'monorepo';
+
+/** 交互里可选的项目形态，顺序即展示顺序。 */
+export const PROJECT_KIND_CHOICES: readonly {
+  value: ProjectKind;
+  label: string;
+}[] = [
+  { value: 'monorepo', label: 'Monorepo (apps + packages)' },
+  { value: 'single', label: 'Single package' },
+];
+
+/** 多体模式可勾选的子包，顺序即拷贝顺序。 */
+export const MONOREPO_SUBPACKAGE_CHOICES: readonly SubPackageChoice[] = [
+  {
+    value: 'packages/utils',
+    label: 'packages/utils - shared utilities with a Rollup build',
+  },
+  { value: 'packages/ui', label: 'packages/ui - shared UI components' },
+  { value: 'apps/web', label: 'apps/web - web application' },
+  { value: 'apps/server', label: 'apps/server - server application' },
+  { value: 'apps/mobile', label: 'apps/mobile - mobile application' },
+];
 
 /** 子包名允许出现的字符。 */
 export const PACKAGE_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
@@ -60,6 +101,8 @@ export const FOLDER_NAME_INVALID_MESSAGE =
 
 export const FOLDER_NAME_EXISTS_MESSAGE =
   'The folder already exists. Please choose another name.';
+
+export const SUBPACKAGE_REQUIRED_MESSAGE = 'Select at least one subpackage.';
 
 // ---------- 工具函数 ----------
 

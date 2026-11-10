@@ -1,16 +1,23 @@
 #!/usr/bin/env node
 
-import { createMonorepo } from './main';
+import { createProject } from './main';
 
 /** CLI 入口：负责输出和错误兜底，主流程都在 main/main.ts 里。 */
 async function run(): Promise<void> {
-  console.log('Creating a Monorepo project scaffold...\n');
+  console.log('Creating a project scaffold...\n');
 
-  const result = await createMonorepo((message) => console.log(message));
+  const result = await createProject((message) => console.log(message));
 
   console.log('\nProject created successfully.');
+  console.log(
+    `Layout: ${result.kind === 'monorepo' ? 'Monorepo' : 'Single package'}`,
+  );
   console.log(`Package name: ${result.packageName}`);
-  console.log(`Workspace scope: @${result.packageName}`);
+
+  if (result.kind === 'monorepo') {
+    console.log(`Workspace scope: @${result.packageName}`);
+    console.log(`Subpackages: ${result.subPackages.join(', ')}`);
+  }
 }
 
 run().catch((error: unknown) => {

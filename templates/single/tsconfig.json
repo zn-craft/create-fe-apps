@@ -3,7 +3,7 @@
     "baseUrl": ".",
     "module": "ESNext",
     "target": "ES2020",
-    "types": [],
+    "types": ["node"],
     "lib": ["ESNext"],
     "sourceMap": true,
     "declaration": true,
@@ -20,6 +20,6 @@
     "esModuleInterop": true,
     "jsx": "react-jsx"
   },
-  "include": ["packages/*/src", "apps/*/src"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
 }

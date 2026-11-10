@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "ESNext",
+    "target": "ES2020",
+    "types": [],
+    "lib": ["ESNext"],
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "strict": true,
+    "verbatimModuleSyntax": false,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["packages/*/src", "apps/*/src"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
+}

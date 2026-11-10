@@ -10,7 +10,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc -p packages/utils/tsconfig.json --noEmit && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit && tsc -p apps/mobile/tsconfig.json --noEmit",
+    "typecheck": "pnpm -r run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

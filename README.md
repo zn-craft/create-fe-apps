@@ -2,7 +2,7 @@
 
 [English](./README.en.md) | **简体中文**
 
-快速生成一个配置齐全的 Monorepo 项目骨架，开箱自带 **ESLint、Prettier、Stylelint、TypeScript、Husky、lint-staged、pnpm workspace** 等工程化配置。
+快速生成配置齐全的项目骨架，支持两种形态：**单体**（单包工程）和**多体**（`apps/*` + `packages/*` 的 Monorepo）。两种形态都开箱自带 **ESLint、Prettier、Stylelint、TypeScript、Husky、lint-staged** 等工程化配置。
 
 ```bash
 npx crm-zn
@@ -37,9 +37,10 @@ crm-zn
 
 ## 它解决什么问题
 
-从零搭一个 Monorepo 时，真正费时间的不是业务代码，而是这一堆东西：
+从零搭项目时，真正费时间的不是业务代码，而是这一堆东西：
 
-- `pnpm-workspace.yaml` 怎么配，`apps/*` 和 `packages/*` 怎么划分；
+- 该用哪种形态：一个包就够，还是要拆成 `apps/*` + `packages/*` 的 Monorepo；
+- Monorepo 里 `pnpm-workspace.yaml` 怎么配，`apps/*` 和 `packages/*` 怎么划分；
 - ESLint 9 的 **flat config** 怎么写（网上大量教程还是旧的 `.eslintrc`）；
 - 根 `tsconfig.json` 和子项目 `tsconfig.json` 的继承关系怎么设计；
 - Prettier 和 ESLint 的规则怎么不打架；
@@ -47,6 +48,8 @@ crm-zn
 - 各个子包的 `package.json` 名字、作用域、依赖引用怎么统一。
 
 `crm-zn` 把上面这些一次性生成好，并且**所有配置都是可运行、经过校验的**，你只需要往里填业务代码。
+
+两种形态共用同一套工程化配置，差别只在目录结构和 `package.json`：多体形态还会让你勾选具体要生成哪些子包。
 
 生成的特点是：
 
@@ -61,10 +64,10 @@ crm-zn
 
 ## 环境要求
 
-| 项目     | 要求                                                       |
-| -------- | ---------------------------------------------------------- |
-| Node.js  | **>= 20.12.0**                                             |
-| 包管理器 | pnpm（生成的项目是 pnpm workspace，**不支持 npm / yarn**） |
+| 项目     | 要求                                                                            |
+| -------- | ------------------------------------------------------------------------------- |
+| Node.js  | **>= 20.12.0**                                                                  |
+| 包管理器 | pnpm。两种形态的 Husky 钩子都用 `pnpm exec`，多体形态的 workspace 也只支持 pnpm |
 
 > Node 版本下限来自运行时依赖 `inquirer@13`。低于该版本安装时会出现 `EBADENGINE` 警告，运行也可能失败。
 
@@ -77,25 +80,42 @@ crm-zn
 npx crm-zn
 ```
 
-CLI 会先问你一个项目名：
+CLI 会依次问你项目名、项目形态，多体形态下再问要哪些子包。全部回车走默认值，得到的就是完整的 Monorepo：
 
 ```
-Creating a Monorepo project scaffold...
+Creating a project scaffold...
 
 ? Please enter the project folder name: (my-monorepo-project)
-```
+? Which project layout do you want? (Use arrow keys)
+> Monorepo (apps + packages)
+  Single package
+? Which subpackages do you want?
+>(*) packages/utils - shared utilities with a Rollup build
+ (*) packages/ui - shared UI components
+ (*) apps/web - web application
+ (*) apps/server - server application
+ (*) apps/mobile - mobile application
 
-回车使用默认名，或输入自己的名字，然后：
-
-```
 Creating project: my-monorepo-project
-Copying template files...
+Copying shared config files...
+Copying project template...
+Copying subpackages...
 Updating root package.json...
 Updating workspace package names...
 
 Project created successfully.
+Layout: Monorepo
 Package name: my-monorepo-project
 Workspace scope: @my-monorepo-project
+Subpackages: packages/utils, packages/ui, apps/web, apps/server, apps/mobile
+```
+
+选单体形态时不会问子包，结束信息也少两行：
+
+```
+Project created successfully.
+Layout: Single package
+Package name: my-single-package
 ```
 
 最后进入目录安装依赖即可：
@@ -109,7 +129,9 @@ pnpm install
 
 ## 交互说明
 
-只有**一个**提问，就是对项目目录名的校验：
+一共三个提问，只有第一个需要输入。
+
+**1. 项目目录名**
 
 | 输入                           | 结果                                |
 | ------------------------------ | ----------------------------------- |
@@ -120,11 +142,34 @@ pnpm install
 | `_app` / `-app`                | ❌ 必须以字母或数字开头             |
 | `web`（当前目录已存在 `web/`） | ❌ 提示该目录已存在，要求换一个名字 |
 
+**2. 项目形态**
+
+| 选项                         | 生成内容                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `Monorepo (apps + packages)` | `pnpm-workspace.yaml`、根 `package.json`（`typecheck` 走 `pnpm -r`）、勾选的子包（默认项） |
+| `Single package`             | 单份 `package.json` 和 `tsconfig.json` 加 `src/index.ts`，没有 workspace                   |
+
+**3. 子包（只在多体形态出现）**
+
+默认全选。↑↓ 移动、空格切换、`a` 全选、`i` 反选，回车提交；一个都不选会被拦住。
+
+| 子包             | 内容                         |
+| ---------------- | ---------------------------- |
+| `packages/utils` | 工具库，自带 Rollup 打包配置 |
+| `packages/ui`    | 组件库                       |
+| `apps/web`       | 浏览器端应用                 |
+| `apps/server`    | 服务端应用                   |
+| `apps/mobile`    | 移动端应用                   |
+
 > 目录名的合法性在**两处**把关：交互时即时提示，创建时再用 `mkdir` 独占创建兜底。所以即使绕过交互，也不会覆盖已有目录。
 
 ---
 
 ## 生成的项目结构
+
+### 多体（Monorepo）
+
+下面以全选子包为例，实际只生成你勾选的那几个：
 
 ```text
 my-monorepo-project/
@@ -164,6 +209,24 @@ my-monorepo-project/
 | `apps/web`、`apps/mobile`、`packages/ui` | `lib: ["ESNext", "DOM"]` |
 | `apps/server`、`packages/utils`          | `lib: ["ESNext"]`        |
 
+### 单体（单包）
+
+```text
+my-single-package/
+├── src/index.ts                 # 应用入口，目前是占位导出
+├── .husky/pre-commit            # 提交前跑 lint-staged
+├── .gitattributes
+├── .gitignore
+├── .prettierignore
+├── eslint.config.mjs            # ESLint 9 flat config
+├── prettier.config.mjs
+├── stylelint.config.cjs
+├── tsconfig.json                # 直接 include src
+└── package.json
+```
+
+单体形态没有 `pnpm-workspace.yaml`，没有子包，`tsconfig.json` 也不需要在 `extends` 里接一根公共基座。
+
 ---
 
 ## 生成的项目自带什么
@@ -172,13 +235,16 @@ my-monorepo-project/
 
 生成的是 `eslint.config.mjs`，使用 ESLint 9 的 flat config 写法，按目录区分运行环境：
 
-| 作用范围                             | 全局变量环境                   |
-| ------------------------------------ | ------------------------------ |
-| `apps/frontend/**`、`packages/ui/**` | 浏览器（`globals.browser`）    |
-| `apps/backend/**`                    | Node（`globals.node`）         |
-| 其他文件                             | 模块语义 + TypeScript 推荐规则 |
+| 作用范围                                          | 全局变量环境                   |
+| ------------------------------------------------- | ------------------------------ |
+| `apps/web/**`、`apps/mobile/**`、`packages/ui/**` | 浏览器（`globals.browser`）    |
+| `apps/server/**`、`packages/utils/**`             | Node（`globals.node`）         |
+| `**/*.cjs`                                        | Node（`globals.node`）         |
+| 其他文件                                          | 模块语义 + TypeScript 推荐规则 |
 
 同时通过 `eslint-config-prettier` 关掉所有与 Prettier 冲突的格式化规则，用 `eslint-plugin-prettier` 把 Prettier 的问题作为 lint 警告暴露出来。
+
+单体形态没有 `apps/*`、`packages/*` 的划分，只保留一份通用规则，默认按 Node 环境注入全局变量。要改成浏览器环境，把 `eslint.config.mjs` 里的 `globals` 和 `tsconfig.json` 里的 `lib` / `types` 一起换掉即可。
 
 ### Prettier
 
@@ -244,7 +310,7 @@ my-monorepo-project/
    git init && git add -A && git commit -m "chore: init"
    ```
 
-5. **按需增删子项目**：不需要 `apps/mobile` 就直接删掉该目录，并同步移除根 `typecheck` 脚本里对应的那一项。
+5. **按需增删子项目**：不需要 `apps/mobile` 就直接删掉该目录即可。根 `typecheck` 走的是 `pnpm -r run typecheck`，会按实际存在的子包自动收敛。
 
 6. **开始写业务**：把共享代码放 `packages/`，应用入口放 `apps/`，子包之间用 `workspace:*` 互相引用：
 
@@ -268,7 +334,7 @@ my-monorepo-project/
 | ----------------------- | -------------------------------------------- |
 | `pnpm run lint`         | 全仓库 ESLint 检查                           |
 | `pnpm run lint:fix`     | ESLint 自动修复                              |
-| `pnpm run typecheck`    | 依次对 5 个子项目做类型检查                  |
+| `pnpm run typecheck`    | 递归执行所有子包各自的 `typecheck`           |
 | `pnpm run format`       | Prettier 格式化全部文件                      |
 | `pnpm run format:check` | 只检查格式，不写入                           |
 | `pnpm run prepare`      | 安装 Husky 钩子（`pnpm install` 会自动触发） |
@@ -349,8 +415,11 @@ pnpm run release      # standard-version 升版本 + npm publish
 **为什么生成的项目里 ESLint 用 `eslint.config.mjs`，Stylelint 用 `stylelint.config.cjs`？**
 两者要匹配各自实际的加载能力。ESLint 9 的 flat config 在 `"type": "module"` 的项目里用 `.mjs`；而 Stylelint 配置写的是 `module.exports`，必须用 `.cjs` 才能在 ESM 项目里被当成 CommonJS 解析。
 
+**为什么模板分成 `base/` 和形态目录？**
+两种形态共用同一套工程化配置，差别集中在目录结构和 `package.json` 上。共用部分放 `templates/base/`，形态专有的放 `templates/monorepo/` 和 `templates/single/`；拷贝时先铺 base 再叠加形态目录，同名文件后者覆盖前者。这样加新形态只需要多一个目录加一条配置，公共规则永远只有一份。
+
 **为什么根 `tsconfig.json` 的 `include` 是 `["packages/*/src", "apps/*/src"]`？**
-这是给子项目 `extends` 的公共基座。子项目自己的 `include: ["src"]` 会完全覆盖它。这里**不能写 `"files": []`** —— 那样虽然也能被继承，但直接运行 `tsc -p tsconfig.json` 会报 `TS18002: The 'files' list ... is empty`；也不建议写 `"include": []`（报 `TS18003`）。写成具体的源码路径，既能直接运行，又不会把 `scripts/` 之类的杂项卷进类型检查。
+这是给子项目 `extends` 的公共基座。子项目自己的 `include: ["src"]` 会完全覆盖它。这里**不能写 `"files": []`** —— 那样虽然也能被继承，但直接运行 `tsc -p tsconfig.json` 会报 `TS18002: The 'files' list ... is empty`；也不建议写 `"include": []`（报 `TS18003`）。写成具体的源码路径，既能直接运行，又不会把根目录的配置文件卷进类型检查。
 
 **为什么仓库要放 `.gitattributes`？**
 强制 `eol=lf`。否则 `core.autocrlf=true` 的 Windows 机器会检出 CRLF，而 Prettier 默认按 LF 比对，`format:check` 在 Windows 上必然失败——这是一个和代码风格无关、纯粹由换行符引发的假错误。
@@ -363,7 +432,10 @@ pnpm run release      # standard-version 升版本 + npm publish
 ## 常见问题
 
 **Q：可以用 npm 或 yarn 吗？**
-不建议。生成的项目是 pnpm workspace，`pnpm-workspace.yaml` 与 `workspace:*` 协议都是 pnpm 专有语法，换成 npm/yarn 需要把依赖引用全部改掉。
+多体形态不建议。它是 pnpm workspace，`pnpm-workspace.yaml` 与 `workspace:*` 协议都是 pnpm 专有语法，换成 npm/yarn 需要把依赖引用全部改掉。单体形态本身没有 workspace，但 `.husky/pre-commit` 写的是 `pnpm exec lint-staged`，换包管理器时要一并改掉这一行。
+
+**Q：支持哪几种项目形态？**
+两种：单体（单包工程）和多体（Monorepo）。两者共用同一套 ESLint / Prettier / Stylelint / Husky 配置，差别只在目录结构和 `package.json`；多体形态还会让你勾选具体生成哪些子包。
 
 **Q：`pnpm lint` 报错说找不到某个包？**
 请改用 `pnpm run lint`。原因见上文「生成项目中的可用命令」下的提示。
@@ -378,7 +450,7 @@ pnpm run release      # standard-version 升版本 + npm publish
 是的。模板只提供**工程化骨架**，不含具体框架（React/Vue/Next 等）。请按需自行接入，`src/index.ts` 是给你替换的占位文件。
 
 **Q：怎么删掉某个子项目？**
-删目录，然后同步修改根 `package.json` 的 `typecheck` 脚本（里面逐个列出了 5 个子项目），以及 `pnpm-workspace.yaml` 如果用到具体的 glob。
+直接删目录即可。根 `typecheck` 是 `pnpm -r run typecheck`，`pnpm-workspace.yaml` 用的是 `packages/*` + `apps/*` 的 glob，两处都不需要跟着改。
 
 ---
 
@@ -393,12 +465,10 @@ crm-zn/
 │   │   ├── main.ts         # 主流程：交互、拷贝模板、改写包名
 │   │   ├── main.config.ts  # 常量与工具函数
 │   │   └── main.type.ts    # 类型定义
-├── templates/              # 生成项目时被整体拷贝的模板
-│   ├── apps/               #   web / server / mobile
-│   ├── packages/           #   ui / utils
-│   ├── scripts/
-│   ├── .husky/
-│   └── ...                 #   eslint / prettier / stylelint / tsconfig 等配置
+├── templates/              # 生成项目时被拷贝的模板
+│   ├── base/               #   两种形态共用：husky / prettier / stylelint / ignore 文件
+│   ├── monorepo/           #   多体形态：workspace、apps/*、packages/*、根 tsconfig
+│   └── single/             #   单体形态：单包 package.json / tsconfig / src
 ├── eslint.config.mjs       # 本仓库自己的 ESLint 配置
 ├── prettier.config.mjs
 ├── tsconfig.json
@@ -408,11 +478,12 @@ crm-zn/
 
 CLI 的工作流程很短：
 
-1. 交互式询问目录名并校验；
+1. 交互式询问目录名并校验，再询问形态，多体形态下继续询问子包；
 2. 用 `fs.mkdir` 在 `process.cwd()` 下**独占创建**目标目录；
-3. 把 `templates/` 整体拷贝进去（templates 目录的定位基准是构建产物 `dist/index.js` 的上一级）；
-4. 改写根 `package.json` 的 `name`；
-5. 遍历 `apps/` 和 `packages/`，把每个子包的名字改写成 `@<项目名>/<子包名>`，并同步改写其中的 `@template/*` 依赖引用。
+3. 先铺 `templates/base/`，再叠加 `templates/<形态>/` 的根级内容，同名文件以后者为准（templates 目录的定位基准是构建产物 `dist/index.js` 的上一级）；
+4. 多体形态下按勾选结果逐个拷贝 `apps/<子包>` 与 `packages/<子包>`；
+5. 改写根 `package.json` 的 `name`；
+6. 多体形态下遍历 `apps/` 和 `packages/`，把每个子包的名字改写成 `@<项目名>/<子包名>`，并同步改写其中的 `@template/*` 依赖引用。
 
 ---
 

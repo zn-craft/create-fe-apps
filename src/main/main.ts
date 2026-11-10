@@ -4,12 +4,17 @@ import fs from 'fs-extra';
 import inquirer from 'inquirer';
 
 import {
+  DEFAULT_PROJECT_KIND,
   FOLDER_NAME_EXISTS_MESSAGE,
   FOLDER_NAME_INVALID_MESSAGE,
   FOLDER_NAME_REQUIRED_MESSAGE,
+  MONOREPO_SUBPACKAGE_CHOICES,
   PACKAGE_NAME_PATTERN,
+  PROJECT_KIND_CHOICES,
   SUBPACKAGE_DIRS,
-  TEMPLATE_DIR,
+  SUBPACKAGE_REQUIRED_MESSAGE,
+  TEMPLATE_BASE_DIR,
+  TEMPLATE_KIND_DIRS,
   assertValidFolderName,
   normalizeFolderName,
   readJsonObject,
@@ -18,9 +23,9 @@ import {
   writeJsonObject,
 } from './main.config';
 import type {
-  CreateMonorepoResult,
-  FolderNameAnswers,
+  CreateProjectResult,
   ProgressReporter,
+  ProjectKind,
 } from './main.type';
 
 /** 询问项目目录名。校验规则和提示文案复用 config 里的那份。 */
@@ -51,9 +56,58 @@ async function promptFolderName(): Promise<string> {
       // filter 在 validate 之后执行，所以这里只在未配置默认值兜底。
       filter: (input: string) => (input ? normalizeFolderName(input) : ''),
     },
-  ])) as FolderNameAnswers;
+  ])) as { folderName: string };
 
   return answers.folderName;
+}
+
+/** 询问项目形态。默认多体，保持工具原本只生成 Monorepo 的行为。 */
+async function promptProjectKind(): Promise<ProjectKind> {
+  const answers = (await inquirer.prompt([
+    {
+      type: 'select',
+      name: 'kind',
+      message: 'Which project layout do you want?',
+      choices: PROJECT_KIND_CHOICES.map((choice) => ({
+        name: choice.label,
+        value: choice.value,
+      })),
+      default: DEFAULT_PROJECT_KIND,
+    },
+  ])) as { kind: ProjectKind };
+
+  return answers.kind;
+}
+
+/**
+ * 收敛交互返回的子包列表。
+ * 只保留配置里声明过的路径，并把顺序统一成配置顺序，
+ * 免得交互层以外的值流进拷贝逻辑。
+ */
+function selectKnownSubPackages(values: readonly string[]): string[] {
+  return MONOREPO_SUBPACKAGE_CHOICES.map((choice) => choice.value).filter(
+    (value) => values.includes(value),
+  );
+}
+
+/** 询问多体模式下要生成哪些子包。 */
+async function promptSubPackages(): Promise<string[]> {
+  const answers = (await inquirer.prompt([
+    {
+      type: 'checkbox',
+      name: 'subPackages',
+      message: 'Which subpackages do you want?',
+      choices: MONOREPO_SUBPACKAGE_CHOICES.map((choice) => ({
+        name: choice.label,
+        value: choice.value,
+        checked: true,
+      })),
+      validate: (input: readonly string[]) =>
+        input.length > 0 ? true : SUBPACKAGE_REQUIRED_MESSAGE,
+    },
+  ])) as { subPackages: string[] };
+
+  return selectKnownSubPackages(answers.subPackages);
 }
 
 /**
@@ -137,25 +191,78 @@ async function updateSubpackages(
   }
 }
 
-/** 生成 Monorepo 骨架：交互取目录名，拷贝模板，再把包名改写成用户的项目名。 */
-export async function createMonorepo(
+/**
+ * 拷贝形态模板的根级内容。
+ * apps/ 与 packages/ 由子包勾选决定，这里跳过。
+ */
+async function copyTemplateRoot(
+  templateDir: string,
+  targetDir: string,
+): Promise<void> {
+  const entries = await fs.readdir(templateDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (SUBPACKAGE_DIRS.some((dir) => dir === entry.name)) {
+      continue;
+    }
+
+    await fs.copy(
+      path.join(templateDir, entry.name),
+      path.join(targetDir, entry.name),
+    );
+  }
+}
+
+/** 按勾选结果拷贝子包，模板树和产物树保持同构。 */
+async function copySubPackages(
+  templateDir: string,
+  targetDir: string,
+  subPackages: readonly string[],
+): Promise<void> {
+  for (const subPackage of subPackages) {
+    await fs.copy(
+      path.join(templateDir, subPackage),
+      path.join(targetDir, subPackage),
+    );
+  }
+}
+
+/**
+ * 生成项目骨架：交互取目录名和形态，先铺共用知识体系，再叠加形态模板和子包，
+ * 最后把包名改写成用户的项目名。
+ */
+export async function createProject(
   report: ProgressReporter,
-): Promise<CreateMonorepoResult> {
+): Promise<CreateProjectResult> {
   const folderName = await promptFolderName();
   assertValidFolderName(folderName);
+
+  const kind = await promptProjectKind();
+  const subPackages = kind === 'monorepo' ? await promptSubPackages() : [];
 
   report(`Creating project: ${folderName}`);
 
   const targetDir = await createTargetDirectory(folderName);
+  const templateDir = TEMPLATE_KIND_DIRS[kind];
 
-  report('Copying template files...');
-  await fs.copy(TEMPLATE_DIR, targetDir);
+  report('Copying shared config files...');
+  await fs.copy(TEMPLATE_BASE_DIR, targetDir);
+
+  report('Copying project template...');
+  await copyTemplateRoot(templateDir, targetDir);
+
+  if (subPackages.length > 0) {
+    report('Copying subpackages...');
+    await copySubPackages(templateDir, targetDir, subPackages);
+  }
 
   report('Updating root package.json...');
   await updateRootPackageName(targetDir, folderName);
 
-  report('Updating workspace package names...');
-  await updateSubpackages(targetDir, folderName);
+  if (kind === 'monorepo') {
+    report('Updating workspace package names...');
+    await updateSubpackages(targetDir, folderName);
+  }
 
-  return { folderName, packageName: folderName, targetDir };
+  return { folderName, packageName: folderName, targetDir, kind, subPackages };
 }
