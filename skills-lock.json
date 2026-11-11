@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "js-module-structure": {
+      "source": "zn-craft/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/js-module-structure/SKILL.md",
+      "computedHash": "a95145fa9a54343ff9020253e9ccbba1fccb72bb6c92b65723b75e2574d77907"
+    }
+  }
+}
