@@ -1,6 +1,6 @@
 {
   "name": "create-fe-apps",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Create a frontend project scaffold in one command: a single package or a monorepo with apps and packages, with ESLint, Stylelint, TypeScript, Husky and lint-staged built in",
   "keywords": [
     "create",
