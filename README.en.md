@@ -15,7 +15,7 @@ npm create fe-apps
 Run `npm create fe-apps` (or `npx create-fe-apps`) where the project should live and press Enter on everything — that gives you the full Monorepo:
 
 ```
-? Please enter the project folder name: (my-monorepo-project)
+? Please enter the project folder name: (my-project)
 ? Which project layout do you want?
 > Monorepo (apps + packages)
   Single package
@@ -27,14 +27,14 @@ Run `npm create fe-apps` (or `npx create-fe-apps`) where the project should live
 
 Project created successfully.
 Layout: Monorepo
-Package name: my-monorepo-project
-Workspace scope: @my-monorepo-project
+Package name: my-project
+Workspace scope: @my-project
 ```
 
 Then install and go:
 
 ```bash
-cd my-monorepo-project
+cd my-project
 pnpm install
 ```
 
@@ -65,7 +65,7 @@ Folder names may only contain lowercase letters, digits and hyphens, and must st
 **Monorepo**
 
 ```text
-my-monorepo-project/
+my-project/
 ├── apps/                   web / server / mobile
 ├── packages/               utils (Rollup build included) / ui
 ├── pnpm-workspace.yaml

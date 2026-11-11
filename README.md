@@ -15,7 +15,7 @@ npm create fe-apps
 在你放项目的目录下执行 `npm create fe-apps`（或 `npx create-fe-apps`），一路回车走默认值，得到完整的 Monorepo：
 
 ```
-? Please enter the project folder name: (my-monorepo-project)
+? Please enter the project folder name: (my-project)
 ? Which project layout do you want?
 > Monorepo (apps + packages)
   Single package
@@ -27,14 +27,14 @@ npm create fe-apps
 
 Project created successfully.
 Layout: Monorepo
-Package name: my-monorepo-project
-Workspace scope: @my-monorepo-project
+Package name: my-project
+Workspace scope: @my-project
 ```
 
 然后装依赖即可：
 
 ```bash
-cd my-monorepo-project
+cd my-project
 pnpm install
 ```
 
@@ -65,7 +65,7 @@ create-fe-apps my-app --subpackages utils,web   # 只生成这两类子包
 **多体（Monorepo）**
 
 ```text
-my-monorepo-project/
+my-project/
 ├── apps/                   web / server / mobile
 ├── packages/               utils（自带 Rollup 打包） / ui
 ├── pnpm-workspace.yaml

@@ -1,10 +1,12 @@
 {
-  // TypeScript 编译器的核心配置。
+  // 仓库里所有 TypeScript 一份配置搞定：CLI 源码（src/）、开发脚本（scripts/）
+  // 和构建配置（tsup.config.ts）都在这一个 program 里，编辑器与 CI 走的是同一套规则。
   "compilerOptions": {
     // 编译后的 JavaScript 目标版本。
     "target": "ES2020",
 
-    // 输出 CommonJS，适合当前这个 Node CLI 包。
+    // 按 CommonJS 语义检查：tsup 产出 CJS，scripts/ 也由 tsx 按 package.json 的
+    // "type": "commonjs" 转成 CJS 执行，所以全仓库都不该出现 import.meta。
     "module": "CommonJS",
 
     // 使用 Node 的模块解析规则查找依赖。
@@ -13,11 +15,9 @@
     // 告诉 TS 代码运行时可用的标准库能力。
     "lib": ["ES2020"],
 
-    // 指定源码根目录，保证 dist/ 下不会多出一层 src/。
-    "rootDir": "src",
-
-    // 编译产物输出到 dist。
-    "outDir": "dist",
+    // 只做类型检查：打包交给 tsup，所以不需要 rootDir / outDir，
+    // 也就不会出现「文件在 rootDir(src) 之外」的 TS6059。
+    "noEmit": true,
 
     // 允许更自然地导入 CommonJS 模块。
     "esModuleInterop": true,
@@ -38,10 +38,9 @@
     "types": ["node"]
   },
 
-  // 只检查 src 下的源码。tsup.config.ts 由 tsup 自己加载，
-  // 放进程序会因为落在 rootDir(src) 之外而触发 TS6059。
-  "include": ["src/**/*.ts"],
+  // 三块源码都进来，编辑器按「最近的 tsconfig.json」认领文件，脚本与构建配置不会掉队。
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "tsup.config.ts"],
 
   // 这些目录不会参与编译或类型检查。
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules", ".agents"]
 }

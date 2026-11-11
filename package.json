@@ -50,7 +50,7 @@
   ],
   "scripts": {
     "clean": "rimraf dist",
-    "audit:deps": "node scripts/auditDeps/auditDeps.mjs",
+    "audit:deps": "tsx scripts/auditDeps/auditDeps.ts",
     "lint": "pnpm run lint:eslint && pnpm run format:check",
     "lint:eslint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
@@ -59,7 +59,7 @@
     "prepare": "husky",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "pnpm run clean && pnpm run typecheck && tsup",
-    "verify:templates": "pnpm run build && node scripts/verifyTemplates/verifyTemplates.mjs",
+    "verify:templates": "pnpm run build && tsx scripts/verifyTemplates/verifyTemplates.ts",
     "dev": "tsup --watch",
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
@@ -93,7 +93,8 @@
     "rimraf": "^6.0.1",
     "standard-version": "^9.5.0",
     "tsup": "^8.5.0",
-    "typescript-eslint": "^8.38.0",
-    "typescript": "^5.9.3"
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.38.0"
   }
 }

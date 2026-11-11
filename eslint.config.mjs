@@ -2,6 +2,9 @@ import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+// tsconfig.json 的 include 覆盖的源码范围，类型感知规则只对这几类文件生效。
+const TS_FILES = ['src/**/*.ts', 'scripts/**/*.ts', 'tsup.config.ts'];
+
 export default [
   {
     // 不检查构建产物、依赖目录、Husky 内部目录，以及脚手架模板目录。
@@ -48,10 +51,10 @@ export default [
   // flat config 不支持在配置对象里写 extends，需要把预设本身铺进数组。
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,
-    files: ['src/**/*.ts'],
+    files: TS_FILES,
   })),
   {
-    files: ['src/**/*.ts'],
+    files: TS_FILES,
     languageOptions: {
       parserOptions: {
         // 通过 TS Project Service 自动关联当前项目的 tsconfig。
@@ -66,12 +69,6 @@ export default [
       // 禁止悬空 Promise，避免异步错误被静默丢失。
       '@typescript-eslint/no-floating-promises': 'error',
     },
-  },
-  {
-    // tsup.config.ts 不在 tsconfig 的 program 里（它位于 rootDir 之外），
-    // 所以对它关闭需要类型信息的规则，交给 tsup 自己校验。
-    files: ['tsup.config.ts'],
-    ...tseslint.configs.disableTypeChecked,
   },
   {
     // CLI 入口依赖 console 输出，这里按场景关闭限制。
