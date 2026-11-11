@@ -1,5 +1,5 @@
 {
-  "name": "zhining-monorepo",
+  "name": "my-monorepo-project",
   "version": "1.0.0",
   "description": "",
   "private": true,
@@ -8,6 +8,7 @@
   "author": "",
   "license": "ISC",
   "scripts": {
+    "build": "pnpm -r run build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "pnpm -r run typecheck",
@@ -30,7 +31,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
-    "@types/node": "^24.6.0",
     "eslint": "^9.31.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",

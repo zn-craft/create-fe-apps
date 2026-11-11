@@ -1,7 +1,9 @@
 {
+  // 继承仓库根的公共选项，只覆盖与运行环境相关的部分。
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "types": ["node"],
+    // 移动端默认按浏览器环境处理；接入 React Native 时按它的类型包调整。
+    "types": [],
     "lib": ["ESNext", "DOM"]
   },
   "include": ["src"]

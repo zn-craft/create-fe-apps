@@ -1,7 +1,15 @@
-# .prettierignore
+# 依赖目录
 node_modules
+
+# 构建产物：根目录的 dist，以及任意子包的 dist
 dist
 **/dist
+
+# 静态资源目录，里面通常是生成物或已压缩的文件
 public
+
+# 本地临时目录
 .local
+
+# 锁文件由包管理器生成，格式化只会产生无意义 diff
 pnpm-lock.yaml

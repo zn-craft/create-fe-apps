@@ -1,6 +1,9 @@
-# 仓库内文本文件统一以 LF 存储与检出，避免与 Prettier 的 endOfLine 规则冲突。
+# 所有文本文件统一以 LF 存储和检出。
+# 否则在 core.autocrlf=true 的 Windows 机器上会检出 CRLF，而 Prettier 的
+# endOfLine 是 lf，format:check 会因为换行符在 Windows 上必然失败。
 * text=auto eol=lf
 
+# 二进制文件不做换行符转换，避免把 CRLF 写进图片、字体导致文件损坏。
 *.png binary
 *.jpg binary
 *.jpeg binary
@@ -13,4 +16,5 @@
 *.eot binary
 *.pdf binary
 
+# 锁文件在 diff 里折叠显示，也不计入仓库语言统计。
 pnpm-lock.yaml -diff linguist-generated

@@ -5,7 +5,14 @@ import tseslint from 'typescript-eslint';
 export default [
   {
     // 不检查构建产物、依赖目录、Husky 内部目录，以及脚手架模板目录。
-    ignores: ['dist/**', 'node_modules/**', '.husky/_/**', 'templates/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      '.husky/_/**',
+      'templates/**',
+      '.pnpm-store/**',
+      '.agents/**',
+    ],
   },
   // ESLint 官方提供的基础推荐规则。
   js.configs.recommended,

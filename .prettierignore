@@ -6,6 +6,10 @@ node_modules
 .husky/_
 # 脚手架模板目录按你的要求整体跳过。
 templates
+# pnpm 本地 store 目录，里面是内容寻址的缓存文件。
+.pnpm-store
+# .agents/ 下的 skill 内容由 skill 系统维护，不套用本仓库的格式化规则。
+.agents
 # 锁文件避免被 Prettier 改写产生无意义 diff。
 pnpm-lock.yaml
 # 模板里的锁文件同样跳过。

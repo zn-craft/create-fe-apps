@@ -1,25 +1,39 @@
 {
+  // 这是各子项目 extends 的公共基座：只放所有包都适用的选项，
+  // 与运行环境相关的 lib / types 由各子包的 tsconfig 自行覆盖。
   "compilerOptions": {
+    // 让 "src/xxx" 这类非相对导入有解析基准。
     "baseUrl": ".",
+    // 源码按 ESM 语法写，最终产物格式交给各包的构建工具决定。
     "module": "ESNext",
     "target": "ES2020",
+    // 不隐式引入任何 @types 包；需要哪些由子包显式声明，避免环境类型串味。
     "types": [],
+    // 只给最基础的 ES 能力，DOM / Node 由子包按运行环境追加。
     "lib": ["ESNext"],
     "sourceMap": true,
+    // 共享包要发布类型声明，所以默认打开；不发布的包可以在自己的 tsconfig 里关掉。
     "declaration": true,
     "declarationMap": true,
+    // 下标访问的结果带上 undefined，强制处理越界情况。
     "noUncheckedIndexedAccess": true,
+    // 可选属性与显式 undefined 严格区分。
     "exactOptionalPropertyTypes": true,
     "strict": true,
+    // 保持关闭，省去处处写 import type 的负担；开启后类型导入必须写成 import type。
     "verbatimModuleSyntax": false,
+    // 交给打包器解析，支持 exports 条件导出和无扩展名导入。
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
+    // 跳过第三方 .d.ts 的检查，明显加快类型检查速度。
     "skipLibCheck": true,
     "esModuleInterop": true,
     "jsx": "react-jsx"
   },
+  // 必须写成具体的源码路径：写 "files": [] 会触发 TS18002，写 "include": [] 会触发 TS18003。
+  // 子包自己的 include: ["src"] 会完全覆盖这里。
   "include": ["packages/*/src", "apps/*/src"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
 }

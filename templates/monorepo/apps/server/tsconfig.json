@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    // Node 的全局变量（process、Buffer 等）由 @types/node 提供。
     "types": ["node"],
+    // 服务端不需要 DOM 类型，写了 document、window 会直接报错。
     "lib": ["ESNext"]
   },
   "include": ["src"]

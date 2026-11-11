@@ -1,8 +1,12 @@
 {
+  // 继承仓库根的公共选项，只覆盖与运行环境相关的部分。
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "types": ["node"],
+    // 浏览器环境不引入 Node 类型：写 process、Buffer 会直接报类型错，不会拖到运行时才炸。
+    "types": [],
+    // 浏览器代码需要 DOM 的类型声明。
     "lib": ["ESNext", "DOM"]
   },
+  // 只检查本包源码；这一行会完全覆盖根 tsconfig 的 include。
   "include": ["src"]
 }

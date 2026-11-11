@@ -2,12 +2,7 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
-import type {
-  DependencyField,
-  JsonObject,
-  ProjectKind,
-  SubPackageChoice,
-} from './main.type';
+import type { JsonObject, ProjectKind, SubPackageChoice } from './main.type';
 
 // ---------- 常量 ----------
 
@@ -41,53 +36,95 @@ export const TEMPLATE_DIR = locateTemplatesDir();
 export const TEMPLATE_BASE_DIR = path.join(TEMPLATE_DIR, 'base');
 
 /**
- * 各形态独占的模板目录。
- * 拷贝顺序是 base → 形态目录，同名文件后者覆盖前者。
+ * 各形态的模板目录与交互文案，键的顺序即交互里的展示顺序。
+ * 用 Record 是为了让新增 ProjectKind 时这里必须补齐，否则类型检查会报错。
  */
-export const TEMPLATE_KIND_DIRS: Record<ProjectKind, string> = {
-  single: path.join(TEMPLATE_DIR, 'single'),
-  monorepo: path.join(TEMPLATE_DIR, 'monorepo'),
+export const PROJECT_KINDS: Record<
+  ProjectKind,
+  { label: string; dir: string }
+> = {
+  monorepo: { label: 'Monorepo (apps + packages)', dir: 'monorepo' },
+  single: { label: 'Single package', dir: 'single' },
 };
+
+/** 形态的展示顺序，取自 PROJECT_KINDS 的键顺序。 */
+const PROJECT_KIND_ORDER = Object.keys(PROJECT_KINDS) as ProjectKind[];
 
 /** 会被重命名作用域的子包目录。 */
 export const SUBPACKAGE_DIRS = ['apps', 'packages'] as const;
 
-/** 模板里用来占位的工作区作用域前缀。 */
-export const TEMPLATE_SCOPE = '@template/';
+/** 默认形态：不选时保持工具原本只生成 Monorepo 的行为。 */
+export const DEFAULT_PROJECT_KIND: ProjectKind = PROJECT_KIND_ORDER[0];
 
-/** 默认形态：不选时保持工具原本的产物。 */
-export const DEFAULT_PROJECT_KIND: ProjectKind = 'monorepo';
-
-/** 交互里可选的项目形态，顺序即展示顺序。 */
+/** 交互里可选的项目形态。 */
 export const PROJECT_KIND_CHOICES: readonly {
   value: ProjectKind;
   label: string;
-}[] = [
-  { value: 'monorepo', label: 'Monorepo (apps + packages)' },
-  { value: 'single', label: 'Single package' },
-];
+}[] = PROJECT_KIND_ORDER.map((value) => ({
+  value,
+  label: PROJECT_KINDS[value].label,
+}));
 
-/** 多体模式可勾选的子包，顺序即拷贝顺序。 */
-export const MONOREPO_SUBPACKAGE_CHOICES: readonly SubPackageChoice[] = [
-  {
-    value: 'packages/utils',
-    label: 'packages/utils - shared utilities with a Rollup build',
-  },
-  { value: 'packages/ui', label: 'packages/ui - shared UI components' },
-  { value: 'apps/web', label: 'apps/web - web application' },
-  { value: 'apps/server', label: 'apps/server - server application' },
-  { value: 'apps/mobile', label: 'apps/mobile - mobile application' },
-];
+/**
+ * 子包目录 → 交互里的说明，同时决定展示顺序。
+ * 候选集来自模板目录本身，所以新增子包只要加目录就会出现在交互里。
+ */
+const SUBPACKAGE_LABELS: Record<string, string> = {
+  'packages/utils': 'shared utilities with a Rollup build',
+  'packages/ui': 'shared UI components',
+  'apps/web': 'web application',
+  'apps/server': 'server application',
+  'apps/mobile': 'mobile application',
+};
+
+/** 列出多体模板里真实存在的子包目录。 */
+function listSubPackageDirs(): string[] {
+  const dirs: string[] = [];
+
+  for (const topDir of SUBPACKAGE_DIRS) {
+    const topPath = path.join(resolveTemplateDir('monorepo'), topDir);
+
+    if (!fs.existsSync(topPath)) {
+      continue;
+    }
+
+    for (const entry of fs.readdirSync(topPath, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        dirs.push(`${topDir}/${entry.name}`);
+      }
+    }
+  }
+
+  return dirs;
+}
+
+/** 取某个形态对应的模板目录。 */
+export function resolveTemplateDir(kind: ProjectKind): string {
+  return path.join(TEMPLATE_DIR, PROJECT_KINDS[kind].dir);
+}
+
+/** 多体模式可勾选的子包；顺序取自 SUBPACKAGE_LABELS，未登记的排在后面。 */
+export function resolveMonorepoSubPackages(): SubPackageChoice[] {
+  const available = new Set(listSubPackageDirs());
+  const known = Object.keys(SUBPACKAGE_LABELS).filter((value) =>
+    available.has(value),
+  );
+  const extra = [...available]
+    .filter((value) => !(value in SUBPACKAGE_LABELS))
+    .sort();
+
+  return [...known, ...extra].map((value) => {
+    const description = SUBPACKAGE_LABELS[value];
+
+    return {
+      value,
+      label: description ? `${value} - ${description}` : value,
+    };
+  });
+}
 
 /** 子包名允许出现的字符。 */
 export const PACKAGE_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
-
-/** 参与依赖重写的三个字段。 */
-export const DEPENDENCY_FIELDS: readonly DependencyField[] = [
-  'dependencies',
-  'devDependencies',
-  'peerDependencies',
-];
 
 /**
  * 目录名校验文案。
@@ -103,6 +140,9 @@ export const FOLDER_NAME_EXISTS_MESSAGE =
   'The folder already exists. Please choose another name.';
 
 export const SUBPACKAGE_REQUIRED_MESSAGE = 'Select at least one subpackage.';
+
+/** 目录名的默认值：交互里直接回车，或命令行加 --yes 时使用。 */
+export const DEFAULT_FOLDER_NAME = 'my-monorepo-project';
 
 // ---------- 工具函数 ----------
 
@@ -178,33 +218,4 @@ export function resolveSubpackageBaseName(
   return trimmed.includes('/')
     ? (trimmed.split('/').pop() ?? dirName)
     : trimmed;
-}
-
-/** 把模板里的 @template/xxx 依赖改写成 @<项目名>/xxx。 */
-export function updatePackageDependencies(
-  packageJson: JsonObject,
-  packageName: string,
-): void {
-  for (const field of DEPENDENCY_FIELDS) {
-    const value = packageJson[field];
-
-    if (!isJsonObject(value)) {
-      continue;
-    }
-
-    const updatedDeps: Record<string, string> = {};
-
-    for (const [depName, version] of Object.entries(value)) {
-      if (depName.startsWith(TEMPLATE_SCOPE)) {
-        const subPackageName = depName
-          .slice(TEMPLATE_SCOPE.length)
-          .toLowerCase();
-        updatedDeps[`@${packageName}/${subPackageName}`] = String(version);
-      } else {
-        updatedDeps[depName] = String(version);
-      }
-    }
-
-    packageJson[field] = updatedDeps;
-  }
 }

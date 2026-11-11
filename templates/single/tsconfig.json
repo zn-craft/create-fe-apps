@@ -1,25 +1,36 @@
 {
+  // 单体形态只有这一份 tsconfig，没有 extends 基座。
   "compilerOptions": {
+    // 让 "src/xxx" 这类非相对导入有解析基准。
     "baseUrl": ".",
+    // 源码按 ESM 语法写，产物格式交给后续接入的构建工具决定。
     "module": "ESNext",
     "target": "ES2020",
+    // 默认按 Node 环境。改成浏览器项目时：types 清空，lib 换成 ["ESNext", "DOM"]。
     "types": ["node"],
     "lib": ["ESNext"],
     "sourceMap": true,
+    // 如果你要把这个包发布出去，保留下面两行以产出类型声明；纯应用可以关掉。
     "declaration": true,
     "declarationMap": true,
+    // 下标访问的结果带上 undefined，强制处理越界情况。
     "noUncheckedIndexedAccess": true,
+    // 可选属性与显式 undefined 严格区分。
     "exactOptionalPropertyTypes": true,
     "strict": true,
+    // 保持关闭，省去处处写 import type 的负担；开启后类型导入必须写成 import type。
     "verbatimModuleSyntax": false,
+    // 交给打包器解析，支持 exports 条件导出和无扩展名导入。
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
+    // 跳过第三方 .d.ts 的检查，明显加快类型检查速度。
     "skipLibCheck": true,
     "esModuleInterop": true,
     "jsx": "react-jsx"
   },
+  // 只检查 src 下的源码，避免把根目录的配置文件卷进类型检查。
   "include": ["src"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
 }

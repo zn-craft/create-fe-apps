@@ -4,28 +4,30 @@ import fs from 'fs-extra';
 import inquirer from 'inquirer';
 
 import {
+  DEFAULT_FOLDER_NAME,
   DEFAULT_PROJECT_KIND,
   FOLDER_NAME_EXISTS_MESSAGE,
   FOLDER_NAME_INVALID_MESSAGE,
   FOLDER_NAME_REQUIRED_MESSAGE,
-  MONOREPO_SUBPACKAGE_CHOICES,
   PACKAGE_NAME_PATTERN,
   PROJECT_KIND_CHOICES,
   SUBPACKAGE_DIRS,
   SUBPACKAGE_REQUIRED_MESSAGE,
   TEMPLATE_BASE_DIR,
-  TEMPLATE_KIND_DIRS,
   assertValidFolderName,
   normalizeFolderName,
   readJsonObject,
+  resolveMonorepoSubPackages,
   resolveSubpackageBaseName,
-  updatePackageDependencies,
+  resolveTemplateDir,
   writeJsonObject,
 } from './main.config';
 import type {
+  CreateProjectOptions,
   CreateProjectResult,
   ProgressReporter,
   ProjectKind,
+  SubPackageChoice,
 } from './main.type';
 
 /** 询问项目目录名。校验规则和提示文案复用 config 里的那份。 */
@@ -35,7 +37,7 @@ async function promptFolderName(): Promise<string> {
       type: 'input',
       name: 'folderName',
       message: 'Please enter the project folder name:',
-      default: 'my-monorepo-project',
+      default: DEFAULT_FOLDER_NAME,
       validate: (input: string) => {
         if (!input || !input.trim()) {
           return FOLDER_NAME_REQUIRED_MESSAGE;
@@ -80,24 +82,35 @@ async function promptProjectKind(): Promise<ProjectKind> {
 }
 
 /**
- * 收敛交互返回的子包列表。
- * 只保留配置里声明过的路径，并把顺序统一成配置顺序，
- * 免得交互层以外的值流进拷贝逻辑。
+ * 收敛子包列表。
+ * 只保留模板里真实存在的项，并把顺序统一成配置顺序，
+ * 免得交互层或命令行传进来的值直接流进拷贝逻辑。
+ * 短名（utils）和完整路径（packages/utils）都接受。
  */
-function selectKnownSubPackages(values: readonly string[]): string[] {
-  return MONOREPO_SUBPACKAGE_CHOICES.map((choice) => choice.value).filter(
-    (value) => values.includes(value),
-  );
+function selectKnownSubPackages(
+  choices: readonly SubPackageChoice[],
+  values: readonly string[],
+): string[] {
+  return choices
+    .filter((choice) =>
+      values.some(
+        (value) =>
+          value === choice.value || value === path.basename(choice.value),
+      ),
+    )
+    .map((choice) => choice.value);
 }
 
 /** 询问多体模式下要生成哪些子包。 */
-async function promptSubPackages(): Promise<string[]> {
+async function promptSubPackages(
+  choices: readonly SubPackageChoice[],
+): Promise<string[]> {
   const answers = (await inquirer.prompt([
     {
       type: 'checkbox',
       name: 'subPackages',
       message: 'Which subpackages do you want?',
-      choices: MONOREPO_SUBPACKAGE_CHOICES.map((choice) => ({
+      choices: choices.map((choice) => ({
         name: choice.label,
         value: choice.value,
         checked: true,
@@ -107,7 +120,34 @@ async function promptSubPackages(): Promise<string[]> {
     },
   ])) as { subPackages: string[] };
 
-  return selectKnownSubPackages(answers.subPackages);
+  return selectKnownSubPackages(choices, answers.subPackages);
+}
+
+/**
+ * 子包：命令行给了就按名字匹配，否则走交互。
+ * useAll 为真时（--yes）直接全选。
+ */
+async function resolveSubPackages(
+  provided: readonly string[] | undefined,
+  useAll: boolean,
+): Promise<string[]> {
+  const choices = resolveMonorepoSubPackages();
+
+  if (!provided || provided.length === 0) {
+    if (useAll) {
+      return choices.map((choice) => choice.value);
+    }
+
+    return promptSubPackages(choices);
+  }
+
+  const selected = selectKnownSubPackages(choices, provided);
+
+  if (selected.length === 0) {
+    throw new Error(SUBPACKAGE_REQUIRED_MESSAGE);
+  }
+
+  return selected;
 }
 
 /**
@@ -146,7 +186,7 @@ async function updateRootPackageName(
   await writeJsonObject(packageJsonPath, rootPackageJson);
 }
 
-/** 遍历 apps/ 与 packages/，改写每个子包的包名和依赖引用。 */
+/** 遍历 apps/ 与 packages/，把每个子包改写成 @<项目名>/<子包名>。 */
 async function updateSubpackages(
   rootDir: string,
   packageName: string,
@@ -183,8 +223,6 @@ async function updateSubpackages(
       }
 
       packageJson.name = `@${packageName}/${baseName.toLowerCase()}`;
-
-      updatePackageDependencies(packageJson, packageName);
 
       await writeJsonObject(packageJsonPath, packageJson);
     }
@@ -228,40 +266,58 @@ async function copySubPackages(
 }
 
 /**
- * 生成项目骨架：交互取目录名和形态，先铺共用知识体系，再叠加形态模板和子包，
- * 最后把包名改写成用户的项目名。
+ * 生成项目骨架：取目录名与形态（命令行可以预填，没给的项走交互），
+ * 先铺共用知识体系，再叠加形态模板和子包，最后把包名改写成用户的项目名。
  */
 export async function createProject(
   report: ProgressReporter,
+  options: CreateProjectOptions = {},
 ): Promise<CreateProjectResult> {
-  const folderName = await promptFolderName();
+  const useDefaults = options.yes === true;
+  const folderName =
+    options.folderName ??
+    (useDefaults ? DEFAULT_FOLDER_NAME : await promptFolderName());
+
   assertValidFolderName(folderName);
 
-  const kind = await promptProjectKind();
-  const subPackages = kind === 'monorepo' ? await promptSubPackages() : [];
+  const kind =
+    options.kind ??
+    (useDefaults ? DEFAULT_PROJECT_KIND : await promptProjectKind());
+  const subPackages =
+    kind === 'monorepo'
+      ? await resolveSubPackages(options.subPackages, useDefaults)
+      : [];
 
   report(`Creating project: ${folderName}`);
 
   const targetDir = await createTargetDirectory(folderName);
-  const templateDir = TEMPLATE_KIND_DIRS[kind];
+  const templateDir = resolveTemplateDir(kind);
 
-  report('Copying shared config files...');
-  await fs.copy(TEMPLATE_BASE_DIR, targetDir);
+  try {
+    report('Copying shared config files...');
+    await fs.copy(TEMPLATE_BASE_DIR, targetDir);
 
-  report('Copying project template...');
-  await copyTemplateRoot(templateDir, targetDir);
+    report('Copying project template...');
+    await copyTemplateRoot(templateDir, targetDir);
 
-  if (subPackages.length > 0) {
-    report('Copying subpackages...');
-    await copySubPackages(templateDir, targetDir, subPackages);
-  }
+    if (subPackages.length > 0) {
+      report('Copying subpackages...');
+      await copySubPackages(templateDir, targetDir, subPackages);
+    }
 
-  report('Updating root package.json...');
-  await updateRootPackageName(targetDir, folderName);
+    report('Updating root package.json...');
+    await updateRootPackageName(targetDir, folderName);
 
-  if (kind === 'monorepo') {
-    report('Updating workspace package names...');
-    await updateSubpackages(targetDir, folderName);
+    if (kind === 'monorepo') {
+      report('Updating workspace package names...');
+      await updateSubpackages(targetDir, folderName);
+    }
+  } catch (error) {
+    // 目标目录是我们独占创建的，中途失败就清掉，别在用户目录里留半个项目。
+    // 清理本身再失败不能盖掉原始错误，所以这里忽略。
+    await fs.remove(targetDir).catch(() => undefined);
+
+    throw error;
   }
 
   return { folderName, packageName: folderName, targetDir, kind, subPackages };

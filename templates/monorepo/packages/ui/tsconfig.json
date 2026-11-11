@@ -1,7 +1,9 @@
 {
+  // 库包同样继承根配置，只按目标环境覆盖 lib / types。
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "types": ["node"],
+    // 组件库跑在浏览器里，不引入 Node 类型。
+    "types": [],
     "lib": ["ESNext", "DOM"]
   },
   "include": ["src"]

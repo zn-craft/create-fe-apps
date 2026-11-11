@@ -1,3 +1,6 @@
+# 工作区成员声明。这里用单层通配而不是 apps/**、packages/**：
+# 嵌套 glob 在不同工具里的语义并不一致（例如 Turborepo 明确不支持）。
+# 新增 apps/xxx 或 packages/xxx 目录后会自动纳入，不需要改这个文件。
 packages:
   - "packages/*"
   - "apps/*"

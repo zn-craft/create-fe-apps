@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    // 工具库默认按 Node 环境：要同时给浏览器用，就按调用方需要调整 lib / types。
     "types": ["node"],
     "lib": ["ESNext"]
   },
