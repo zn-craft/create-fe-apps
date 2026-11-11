@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code and config comments"
+  short_description: "Decide what a comment says, when one is required, and when to delete it"
+  default_prompt: "Follow $code-comments to add the comments this change to code and config needs, and clear out the stale ones."

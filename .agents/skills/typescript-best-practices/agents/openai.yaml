@@ -1,0 +1,4 @@
+interface:
+  display_name: "TypeScript best practices"
+  short_description: "Type modeling, boundary narrowing and module export decisions for TypeScript"
+  default_prompt: "Use $typescript-best-practices to settle type modeling, boundary narrowing and module export shapes for this TypeScript change."

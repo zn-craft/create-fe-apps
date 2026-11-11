@@ -1,11 +1,29 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
+    "code-comments": {
+      "source": "zn-craft/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/code-comments/SKILL.md",
+      "computedHash": "76a292c4bb9a39609cf1fe95c3309bcd385cc60745c21e7b302201f4e1f43ec9"
+    },
+    "js-best-practices": {
+      "source": "zn-craft/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/js-best-practices/SKILL.md",
+      "computedHash": "fafc8dfbd04d0f9f0d94b5c0ae12d8ab49b89fc59cec47bdddb5099d9f4e1fdc"
+    },
     "js-module-structure": {
       "source": "zn-craft/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/js-module-structure/SKILL.md",
-      "computedHash": "a95145fa9a54343ff9020253e9ccbba1fccb72bb6c92b65723b75e2574d77907"
+      "computedHash": "e30f5c4f0c5863fefb02c4123b8606f52beb1552a60cc21c9d7d42056a17ebad"
+    },
+    "typescript-best-practices": {
+      "source": "zn-craft/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-best-practices/SKILL.md",
+      "computedHash": "97ea1f11f1d55e92d11e0791bee21189b4f92416c54a5609c684282eb82cf3a4"
     }
   }
 }

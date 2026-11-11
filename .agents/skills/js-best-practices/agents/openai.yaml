@@ -1,0 +1,4 @@
+interface:
+  display_name: "JavaScript Best Practices"
+  short_description: "Naming, function form, control flow and error handling for JavaScript"
+  default_prompt: "Use $js-best-practices to settle the naming, function form, control flow and error handling for this JavaScript change."
