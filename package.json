@@ -1,19 +1,27 @@
 {
-  "name": "crm-zn",
+  "name": "create-fe-apps",
   "version": "0.1.0",
-  "description": "Quickly create a project scaffold, either a single package or a monorepo with apps and packages, built-in eslint, stylelint, tsconfig, husky, lint-staged",
+  "description": "Create a frontend project scaffold in one command: a single package or a monorepo with apps and packages, with ESLint, Stylelint, TypeScript, Husky and lint-staged built in",
   "keywords": [
+    "create",
+    "frontend",
     "monorepo",
     "scaffold",
+    "template",
+    "pnpm-workspace",
     "eslint",
     "stylelint",
-    "typeScript",
+    "typescript",
     "husky",
     "lint-staged"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Eric-zhiwei/crm-zn.git"
+    "url": "git+https://github.com/zn-craft/create-fe-apps.git"
+  },
+  "homepage": "https://github.com/zn-craft/create-fe-apps#readme",
+  "bugs": {
+    "url": "https://github.com/zn-craft/create-fe-apps/issues"
   },
   "license": "MIT",
   "author": "zhining",
@@ -31,16 +39,18 @@
     }
   },
   "bin": {
-    "crm-zn": "./dist/index.js"
+    "create-fe-apps": "./dist/index.js"
   },
   "files": [
     "templates",
     "dist",
+    "CHANGELOG.md",
     "README.md",
     "README.en.md"
   ],
   "scripts": {
     "clean": "rimraf dist",
+    "audit:deps": "node scripts/auditDeps/auditDeps.mjs",
     "lint": "pnpm run lint:eslint && pnpm run format:check",
     "lint:eslint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
@@ -49,11 +59,13 @@
     "prepare": "husky",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "pnpm run clean && pnpm run typecheck && tsup",
+    "verify:templates": "pnpm run build && node scripts/verifyTemplates/verifyTemplates.mjs",
     "dev": "tsup --watch",
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
-    "release": "standard-version && npm publish --registry=https://registry.npmjs.org/",
-    "postrelease": "git push --follow-tags origin main"
+    "release": "standard-version",
+    "postrelease": "git push --follow-tags origin main",
+    "publish:npm": "pnpm publish --registry=https://registry.npmjs.org/"
   },
   "lint-staged": {
     "*.{js,cjs,mjs,ts}": [
